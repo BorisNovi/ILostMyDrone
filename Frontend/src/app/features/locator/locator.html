@@ -1,0 +1,41 @@
+<div class="locator">
+  <app-map [target]="target()" />
+
+  <mat-card class="locator__panel">
+    <form class="locator__form" [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline" class="locator__field">
+        <mat-label>Lat</mat-label>
+        <input matInput type="number" step="any" formControlName="lat" placeholder="41.8902" />
+        @if (form.controls.lat.hasError('required') && form.controls.lat.touched) {
+          <mat-error>Required</mat-error>
+        }
+        @if (form.controls.lat.hasError('min') || form.controls.lat.hasError('max')) {
+          <mat-error>From -90 to 90</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="locator__field">
+        <mat-label>Lng</mat-label>
+        <input matInput type="number" step="any" formControlName="lng" placeholder="12.4925" />
+        @if (form.controls.lng.hasError('required') && form.controls.lng.touched) {
+          <mat-error>Required</mat-error>
+        }
+        @if (form.controls.lng.hasError('min') || form.controls.lng.hasError('max')) {
+          <mat-error>From -180 to 180</mat-error>
+        }
+      </mat-form-field>
+
+      <button mat-flat-button type="submit" class="locator__submit" [disabled]="form.invalid">
+        <mat-icon>near_me</mat-icon>
+        Find
+      </button>
+    </form>
+
+    @if (!geolocation.supported) {
+      <p class="locator__hint locator__hint--error">Geolocation is not supported by browser</p>
+    }
+    @if (geolocation.error()) {
+      <p class="locator__hint locator__hint--error">{{ geolocation.error() }}</p>
+    }
+  </mat-card>
+</div>

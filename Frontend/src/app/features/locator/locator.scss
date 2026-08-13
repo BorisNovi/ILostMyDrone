@@ -1,0 +1,73 @@
+:host {
+  display: block;
+  height: 100dvh;
+  height: 100vh;
+}
+
+.locator {
+  position: relative;
+  height: 100%;
+  width: 100%;
+
+  &__panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
+
+    @media (min-width: 640px) {
+      left: auto;
+      right: 16px;
+      top: 16px;
+      bottom: auto;
+      width: 320px;
+      border-radius: 16px;
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    @media (min-width: 640px) {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+  }
+
+  &__field {
+    width: 100%;
+
+    @media (min-width: 640px) {
+      flex: 1 1 130px;
+    }
+  }
+
+  &__submit {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 4px;
+
+    @media (min-width: 640px) {
+      flex: 1 1 100%;
+    }
+  }
+
+  &__hint {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+
+    &--error {
+      color: #d93025;
+    }
+  }
+}

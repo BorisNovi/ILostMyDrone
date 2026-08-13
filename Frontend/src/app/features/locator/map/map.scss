@@ -1,0 +1,10 @@
+:host {
+  display: block;
+  position: absolute;
+  inset: 0;
+
+  .map__container {
+    position: absolute;
+    inset: 0;
+  }
+}
