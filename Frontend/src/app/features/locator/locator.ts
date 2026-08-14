@@ -8,7 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { LngLatLike } from 'maplibre-gl';
 
 import { GeolocationService } from '../../core/geolocation.service';
-import { bearingDegrees, compassDirection, distanceMeters, formatDistance } from './geo.util';
+import { bearingDegrees, compassDirection, distanceMeters, formatDistance, parseLatLng } from './geo.util';
 import { MapComponent } from './map/map';
 
 @Component({
@@ -35,6 +35,7 @@ export class LocatorComponent {
   });
 
   protected readonly target = signal<LngLatLike | null>(null);
+  protected readonly pasteError = signal<string | null>(null);
 
   protected readonly routeInfo = computed(() => {
     const position = this.geolocation.position();
@@ -48,6 +49,27 @@ export class LocatorComponent {
       direction: compassDirection(bearing),
     };
   });
+
+  protected async pasteCoordinates(): Promise<void> {
+    this.pasteError.set(null);
+
+    let text: string;
+    try {
+      text = await navigator.clipboard.readText();
+    }
+    catch {
+      this.pasteError.set('Clipboard access denied');
+      return;
+    }
+
+    const parsed = parseLatLng(text);
+    if (!parsed) {
+      this.pasteError.set('Clipboard doesn\'t contain "lat, lng" coordinates');
+      return;
+    }
+
+    this.form.patchValue(parsed);
+  }
 
   protected submit(): void {
     if (this.form.invalid) {

@@ -58,18 +58,16 @@
     }
   }
 
-  &__submit {
-    align-self: stretch;
+  &__buttons {
     display: flex;
-    align-items: center;
-    justify-content: center;
     gap: 0.5rem;
-    margin-top: 0.25rem;
+    width: stretch;
 
-    @media (min-width: 40rem) {
-      flex: 1 1 100%;
+    &__submit {
+      width: stretch;
     }
   }
+
 
   &__hint {
     margin: 0.25rem 0 0;

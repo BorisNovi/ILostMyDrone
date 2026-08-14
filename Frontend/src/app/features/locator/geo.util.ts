@@ -42,3 +42,18 @@ export function compassDirection(bearing: number): string {
 export function formatDistance(meters: number): string {
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(2)} km`;
 }
+
+/** Parses "lat, lng" or "lat lng" (comma and/or whitespace-separated) into coordinates. */
+export function parseLatLng(text: string): { lat: number; lng: number } | null {
+  const parts = text.trim().split(/[\s,]+/);
+  if (parts.length !== 2)
+    return null;
+
+  const [lat, lng] = parts.map(Number);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng))
+    return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180)
+    return null;
+
+  return { lat, lng };
+}
