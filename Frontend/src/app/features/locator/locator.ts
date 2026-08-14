@@ -5,11 +5,13 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { GeolocationService, StorageService } from '@app/core';
 import { LngLatLike } from 'maplibre-gl';
-
-import { GeolocationService } from '../../core/geolocation.service';
 import { bearingDegrees, compassDirection, distanceMeters, formatDistance, parseLatLng } from './geo.util';
 import { MapComponent } from './map/map';
+import { gridStorageKey } from './map/search-grid';
+
+const COORDS_STORAGE_KEY = 'coords';
 
 @Component({
   selector: 'app-locator',
@@ -27,14 +29,23 @@ import { MapComponent } from './map/map';
 })
 export class LocatorComponent {
   readonly #fb = inject(FormBuilder);
+  readonly #storage = inject(StorageService);
   protected readonly geolocation = inject(GeolocationService);
 
+  readonly #storedCoords = this.#storage.getItem<{ lat: number; lng: number }>(COORDS_STORAGE_KEY);
+
   protected readonly form = this.#fb.nonNullable.group({
-    lat: [null as number | null, [Validators.required, Validators.min(-90), Validators.max(90)]],
-    lng: [null as number | null, [Validators.required, Validators.min(-180), Validators.max(180)]],
+    lat: [
+      this.#storedCoords?.lat ?? (null as number | null),
+      [Validators.required, Validators.min(-90), Validators.max(90)],
+    ],
+    lng: [
+      this.#storedCoords?.lng ?? (null as number | null),
+      [Validators.required, Validators.min(-180), Validators.max(180)],
+    ],
   });
 
-  protected readonly target = signal<LngLatLike | null>(null);
+  protected readonly target = signal<LngLatLike | null>(this.#storedCoords);
   protected readonly pasteError = signal<string | null>(null);
 
   protected readonly routeInfo = computed(() => {
@@ -44,9 +55,15 @@ export class LocatorComponent {
       return null;
 
     const bearing = bearingDegrees(position, target);
+    // Rotation for an arrow icon pointing at the target *relative to where the
+    // phone is currently facing* — falls back to north-up (0) if there's no
+    // compass heading yet, matching the map's own north-up default.
+    const relativeBearing = (bearing - (position.heading ?? 0) + 360) % 360;
+
     return {
       distance: formatDistance(distanceMeters(position, target)),
       direction: compassDirection(bearing),
+      relativeBearing,
     };
   });
 
@@ -81,6 +98,17 @@ export class LocatorComponent {
     if (lat === null || lng === null)
       return;
 
+    this.#storage.setItem(COORDS_STORAGE_KEY, { lat, lng });
     this.target.set({ lat, lng });
+  }
+
+  protected clear(): void {
+    const target = this.target();
+    if (target)
+      this.#storage.removeItem(gridStorageKey(target));
+
+    this.#storage.removeItem(COORDS_STORAGE_KEY);
+    this.form.reset({ lat: null, lng: null });
+    this.target.set(null);
   }
 }

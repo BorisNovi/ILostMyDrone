@@ -3,7 +3,12 @@
 
   <mat-card class="locator__panel">
     @if (routeInfo(); as info) {
-      <div class="locator__info">{{ info.distance }} · {{ info.direction }}</div>
+      <div class="locator__info">
+        <mat-icon class="locator__info-arrow" [style.transform]="'rotate(' + info.relativeBearing + 'deg)'">
+          navigation
+        </mat-icon>
+        {{ info.distance }} · {{ info.direction }}
+      </div>
     }
 
     <form class="locator__form" [formGroup]="form" (ngSubmit)="submit()">
@@ -29,12 +34,15 @@
         }
       </mat-form-field>
       <div class="locator__buttons">
-        <button matSuffix mat-icon-button type="button" class="paste" (click)="pasteCoordinates()">
+        <button mat-icon-button type="button" class="paste" (click)="pasteCoordinates()">
           <mat-icon>content_paste</mat-icon>
         </button>
         <button mat-flat-button type="submit" class="locator__buttons__submit" [disabled]="form.invalid">
           <mat-icon>near_me</mat-icon>
           Find
+        </button>
+        <button mat-icon-button type="button" (click)="clear()">
+          <mat-icon>clear</mat-icon>
         </button>
       </div>
     </form>

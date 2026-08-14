@@ -43,6 +43,19 @@ export function formatDistance(meters: number): string {
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(2)} km`;
 }
 
+const METERS_PER_DEGREE_LAT = 111320;
+
+/**
+ * Offsets a point by a number of meters east (dx) and north (dy), using an
+ * equirectangular approximation — accurate to within centimeters at the
+ * few-hundred-meter scale this app deals with.
+ */
+export function offsetMeters(point: LngLatLike, dxMeters: number, dyMeters: number): LngLat {
+  const p = LngLat.convert(point);
+  const metersPerDegreeLng = METERS_PER_DEGREE_LAT * Math.cos(toRad(p.lat));
+  return new LngLat(p.lng + dxMeters / metersPerDegreeLng, p.lat + dyMeters / METERS_PER_DEGREE_LAT);
+}
+
 /** Parses "lat, lng" or "lat lng" (comma and/or whitespace-separated) into coordinates. */
 export function parseLatLng(text: string): { lat: number; lng: number } | null {
   const parts = text.trim().split(/[\s,]+/);
