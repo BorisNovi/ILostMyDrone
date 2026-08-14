@@ -52,7 +52,7 @@
     }
 
     @if (geolocation.needsCompassPermission()) {
-      <button mat-stroked-button type="button" class="locator__submit" (click)="geolocation.enableCompass()">
+      <button mat-stroked-button type="button" class="locator__enable-compass" (click)="geolocation.enableCompass()">
         <mat-icon>explore</mat-icon>
         Enable compass
       </button>
