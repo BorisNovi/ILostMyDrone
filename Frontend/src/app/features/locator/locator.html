@@ -35,6 +35,13 @@
       </button>
     </form>
 
+    @if (geolocation.needsCompassPermission()) {
+      <button mat-stroked-button type="button" class="locator__submit" (click)="geolocation.enableCompass()">
+        <mat-icon>explore</mat-icon>
+        Enable compass
+      </button>
+    }
+
     @if (!geolocation.supported) {
       <p class="locator__hint locator__hint--error">Geolocation is not supported by browser</p>
     }

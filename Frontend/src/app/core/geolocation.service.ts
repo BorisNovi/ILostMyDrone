@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy, signal } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 
 export interface UserPosition {
   lat: number;
@@ -7,6 +7,10 @@ export interface UserPosition {
   heading: number | null;
   accuracy: number;
 }
+
+type DeviceOrientationEventCtor = typeof DeviceOrientationEvent & {
+  requestPermission?: () => Promise<'granted' | 'denied'>;
+};
 
 /**
  * Tracks the browser geolocation position and, when available, the device
@@ -18,6 +22,9 @@ export class GeolocationService {
   readonly position = signal<UserPosition | null>(null);
   readonly error = signal<string | null>(null);
   readonly supported = typeof navigator !== 'undefined' && 'geolocation' in navigator;
+
+  /** True once we know the compass needs an explicit tap to grant permission (iOS Safari). */
+  readonly needsCompassPermission = signal(false);
 
   #watchId: number | null = null;
   #orientationHandler = (event: DeviceOrientationEvent) => this.#onOrientation(event);
@@ -34,6 +41,30 @@ export class GeolocationService {
     );
 
     this.#listenToCompass();
+  }
+
+  /**
+   * Must be called synchronously from a user-gesture handler (e.g. a click).
+   * iOS Safari only grants `DeviceOrientationEvent` permission when it's
+   * requested directly inside a tap — a request made from code that runs on
+   * page load (like `start()`) is silently ignored.
+   */
+  enableCompass(): void {
+    const ctor = this.#deviceOrientationCtor();
+    if (!ctor?.requestPermission)
+      return;
+
+    ctor
+      .requestPermission()
+      .then((state) => {
+        if (state === 'granted') {
+          this.needsCompassPermission.set(false);
+          this.#attachOrientationListeners();
+        }
+      })
+      .catch(() => {
+        /* permission denied or unsupported — heading falls back to GPS-derived value */
+      });
   }
 
   stop(): void {
@@ -66,10 +97,16 @@ export class GeolocationService {
       .webkitCompassHeading;
     let heading = webkitHeading;
 
-    if (heading === undefined && event.alpha !== null)
+    // A plain (non-`absolute`) `deviceorientation` event's `alpha` is relative to
+    // wherever the device happened to be pointing when tracking started — not to
+    // true north — so treating it as a compass reading would just be wrong.
+    if (heading === undefined) {
+      if (!event.absolute || event.alpha === null)
+        return;
       heading = 360 - event.alpha;
+    }
 
-    if (heading === undefined || heading === null || Number.isNaN(heading))
+    if (heading === null || Number.isNaN(heading))
       return;
 
     const current = this.position();
@@ -81,29 +118,25 @@ export class GeolocationService {
     if (typeof window === 'undefined' || this.#listeningOrientation)
       return;
 
-    const DeviceOrientationEventCtor = (
-      window as typeof window & {
-        DeviceOrientationEvent?: { requestPermission?: () => Promise<'granted' | 'denied'> };
-      }
-    ).DeviceOrientationEvent;
-
-    const attach = () => {
-      window.addEventListener('deviceorientationabsolute', this.#orientationHandler as EventListener);
-      window.addEventListener('deviceorientation', this.#orientationHandler as EventListener);
-      this.#listeningOrientation = true;
-    };
-
-    if (DeviceOrientationEventCtor?.requestPermission) {
-      DeviceOrientationEventCtor.requestPermission()
-        .then((state) => {
-          if (state === 'granted')
-            attach();
-        })
-        .catch(() => {
-          /* permission denied or unsupported — heading falls back to GPS-derived value */
-        });
+    if (this.#deviceOrientationCtor()?.requestPermission) {
+      this.needsCompassPermission.set(true);
+      return;
     }
-    else
-      attach();
+
+    this.#attachOrientationListeners();
+  }
+
+  #attachOrientationListeners(): void {
+    if (this.#listeningOrientation)
+      return;
+
+    window.addEventListener('deviceorientationabsolute', this.#orientationHandler as EventListener);
+    window.addEventListener('deviceorientation', this.#orientationHandler as EventListener);
+    this.#listeningOrientation = true;
+  }
+
+  #deviceOrientationCtor(): DeviceOrientationEventCtor | undefined {
+    return (window as typeof window & { DeviceOrientationEvent?: DeviceOrientationEventCtor })
+      .DeviceOrientationEvent;
   }
 }
