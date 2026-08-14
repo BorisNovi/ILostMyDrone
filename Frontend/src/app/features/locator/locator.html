@@ -9,7 +9,7 @@
     <form class="locator__form" [formGroup]="form" (ngSubmit)="submit()">
       <mat-form-field appearance="outline" class="locator__field">
         <mat-label>Lat</mat-label>
-        <input matInput type="number" step="any" formControlName="lat" placeholder="41.8902" />
+        <input matInput type="number" inputmode="decimal" step="any" formControlName="lat" placeholder="41.8902" />
         @if (form.controls.lat.hasError('required') && form.controls.lat.touched) {
           <mat-error>Required</mat-error>
         }
@@ -20,7 +20,7 @@
 
       <mat-form-field appearance="outline" class="locator__field">
         <mat-label>Lng</mat-label>
-        <input matInput type="number" step="any" formControlName="lng" placeholder="12.4925" />
+        <input matInput type="number" inputmode="decimal" step="any" formControlName="lng" placeholder="12.4925" />
         @if (form.controls.lng.hasError('required') && form.controls.lng.touched) {
           <mat-error>Required</mat-error>
         }

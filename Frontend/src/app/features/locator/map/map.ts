@@ -50,6 +50,8 @@ export class MapComponent implements OnDestroy {
   #targetMarker: Marker | null = null;
   #lastFittedTarget: LngLatLike | null = null;
   #appliedStyle: string | null = null;
+  /** Stops auto-following the user once they've manually panned the map. */
+  #followUser = true;
 
   constructor() {
     afterNextRender(() => this.#initMap());
@@ -95,6 +97,12 @@ export class MapComponent implements OnDestroy {
     });
 
     this.#map.addControl(new NavigationControl({ showCompass: true }), 'bottom-right');
+
+    // `dragstart` only fires for user-initiated panning (never for our own
+    // `easeTo` calls below), so this is a clean signal to stop auto-following.
+    this.#map.on('dragstart', () => {
+      this.#followUser = false;
+    });
 
     // Fires on the initial load *and* every subsequent setStyle() (e.g. theme
     // toggle) — setStyle() wipes any source/layer not part of the style JSON,
@@ -144,7 +152,7 @@ export class MapComponent implements OnDestroy {
     if (position.heading !== null)
       this.#userMarker.setRotation(position.heading);
 
-    if (!this.target())
+    if (!this.target() && this.#followUser)
       this.#map.easeTo({ center: position });
   }
 
