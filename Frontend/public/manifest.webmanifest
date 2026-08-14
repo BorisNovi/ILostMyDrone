@@ -1,6 +1,6 @@
 {
-  "name": "Coords Finder",
-  "short_name": "Coords Finder",
+  "name": "I lost my drone",
+  "short_name": "Lost Drone",
   "description": "Locate a point on a map from GPS coordinates and see distance/bearing from your position.",
   "display": "standalone",
   "scope": "./",
