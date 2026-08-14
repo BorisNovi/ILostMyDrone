@@ -30,6 +30,12 @@
     }
   }
 
+  &__info {
+    padding-bottom: 1rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
   &__form {
     display: flex;
     flex-direction: column;

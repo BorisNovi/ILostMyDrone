@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { LngLatLike } from 'maplibre-gl';
 
 import { GeolocationService } from '../../core/geolocation.service';
+import { bearingDegrees, compassDirection, distanceMeters, formatDistance } from './geo.util';
 import { MapComponent } from './map/map';
 
 @Component({
@@ -34,6 +35,19 @@ export class LocatorComponent {
   });
 
   protected readonly target = signal<LngLatLike | null>(null);
+
+  protected readonly routeInfo = computed(() => {
+    const position = this.geolocation.position();
+    const target = this.target();
+    if (!position || !target)
+      return null;
+
+    const bearing = bearingDegrees(position, target);
+    return {
+      distance: formatDistance(distanceMeters(position, target)),
+      direction: compassDirection(bearing),
+    };
+  });
 
   protected submit(): void {
     if (this.form.invalid) {

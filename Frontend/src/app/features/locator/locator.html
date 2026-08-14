@@ -2,6 +2,10 @@
   <app-map [target]="target()" />
 
   <mat-card class="locator__panel">
+    @if (routeInfo(); as info) {
+      <div class="locator__info">{{ info.distance }} · {{ info.direction }}</div>
+    }
+
     <form class="locator__form" [formGroup]="form" (ngSubmit)="submit()">
       <mat-form-field appearance="outline" class="locator__field">
         <mat-label>Lat</mat-label>
