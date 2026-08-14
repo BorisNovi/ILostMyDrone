@@ -19,16 +19,18 @@ import {
   GeoJSONSource,
 } from 'maplibre-gl';
 import { environment } from '@environments/environment';
-import { GeolocationService, UserPosition } from '@app/core';
+import { GeolocationService, ThemeService, UserPosition } from '@app/core';
 
 const ROUTE_SOURCE_ID = 'route';
 const FALLBACK_CENTER: [number, number] = [41.8902, 12.4925];
 
-// MapLibre infers the worker URL from its own bundle's `import.meta.url`, which
-// resolves to a broken path once the dev server or the app bundler moves the
-// module around. Pointing it at a static copy (see scripts/copy-maplibre-worker.mjs)
-// sidesteps that entirely, in both dev and production.
-setWorkerUrl('/maplibre-gl-worker.mjs');
+// Documented bundler setup for MapLibre v6+ (esbuild/webpack): `import.meta.url`
+// inside maplibre-gl's own module doesn't reliably resolve once a bundler moves
+// it around, so every consumer must point setWorkerUrl() at a copy of the worker
+// file (see scripts/copy-maplibre-worker.mjs) — resolved relative to this module
+// so it still works if the app is ever served from a sub-path.
+// https://maplibre.org/maplibre-gl-js/docs/
+setWorkerUrl(new URL('./maplibre-gl-worker.mjs', import.meta.url).toString());
 
 @Component({
   selector: 'app-map',
@@ -37,6 +39,7 @@ setWorkerUrl('/maplibre-gl-worker.mjs');
 })
 export class MapComponent implements OnDestroy {
   readonly #geolocation = inject(GeolocationService);
+  readonly #themeService = inject(ThemeService);
 
   readonly target = input<LngLatLike | null>(null);
 
@@ -46,6 +49,7 @@ export class MapComponent implements OnDestroy {
   #userMarker: Marker | null = null;
   #targetMarker: Marker | null = null;
   #lastFittedTarget: LngLatLike | null = null;
+  #appliedStyle: string | null = null;
 
   constructor() {
     afterNextRender(() => this.#initMap());
@@ -63,6 +67,14 @@ export class MapComponent implements OnDestroy {
         this.#fitToMarkers(position, target);
       }
     });
+
+    effect(() => {
+      const style = this.#themeService.isThemeLight() ? environment.tilesLightUrl : environment.tilesDarkUrl;
+      if (this.#map && style !== this.#appliedStyle) {
+        this.#appliedStyle = style;
+        this.#map.setStyle(style);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -71,9 +83,12 @@ export class MapComponent implements OnDestroy {
   }
 
   #initMap(): void {
+    const style = this.#themeService.isThemeLight() ? environment.tilesLightUrl : environment.tilesDarkUrl;
+    this.#appliedStyle = style;
+
     this.#map = new Map({
       container: this.mapContainer().nativeElement,
-      style: environment.tilesLightUrl,
+      style,
       center: FALLBACK_CENTER,
       zoom: 12,
       attributionControl: false,
@@ -81,22 +96,27 @@ export class MapComponent implements OnDestroy {
 
     this.#map.addControl(new NavigationControl({ showCompass: true }), 'bottom-right');
 
-    this.#map.on('load', () => {
-      this.#map?.addSource(ROUTE_SOURCE_ID, {
-        type: 'geojson',
-        data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } },
-      });
+    // Fires on the initial load *and* every subsequent setStyle() (e.g. theme
+    // toggle) — setStyle() wipes any source/layer not part of the style JSON,
+    // so the route needs to be re-attached every time, not just once.
+    this.#map.on('style.load', () => {
+      if (!this.#map?.getSource(ROUTE_SOURCE_ID)) {
+        this.#map?.addSource(ROUTE_SOURCE_ID, {
+          type: 'geojson',
+          data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } },
+        });
 
-      this.#map?.addLayer({
-        id: ROUTE_SOURCE_ID,
-        type: 'line',
-        source: ROUTE_SOURCE_ID,
-        paint: {
-          'line-color': '#1a73e8',
-          'line-width': 3,
-          'line-dasharray': [2, 2],
-        },
-      });
+        this.#map?.addLayer({
+          id: ROUTE_SOURCE_ID,
+          type: 'line',
+          source: ROUTE_SOURCE_ID,
+          paint: {
+            'line-color': '#1a73e8',
+            'line-width': 3,
+            'line-dasharray': [2, 2],
+          },
+        });
+      }
 
       this.#updateUserMarker(this.#geolocation.position());
       this.#updateTargetMarker(this.target());

@@ -1,1 +1,5 @@
+<div class="topbar">
+  <button matMiniFab (click)="themeSrvice.toggleTheme()"><mat-icon>{{themeSrvice.isThemeLight() ? 'light_mode' : 'dark_mode'}}</mat-icon>
+</button>
+</div>
 <router-outlet />

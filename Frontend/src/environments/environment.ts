@@ -3,6 +3,6 @@ import { version } from '../../package.json';
 export const environment = {
   version,
   production: true,
-  tilesLightUrl: 'https://api.maptiler.com/maps/basic-v2/style.json?key=__MAPTILER_KEY__',
-  tilesDarkUrl: 'https://api.maptiler.com/maps/basic-v2-dark/style.json?key=__MAPTILER_KEY__'
+  tilesLightUrl: 'https://tiles.openfreemap.org/styles/liberty',
+  tilesDarkUrl: 'https://tiles.openfreemap.org/styles/dark'
 };

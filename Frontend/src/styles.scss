@@ -5,7 +5,7 @@ html {
   @include mat.theme(
     (
       color: (
-        theme-type: light,
+        theme-type: color-scheme,
         primary: mat.$azure-palette,
         tertiary: mat.$blue-palette,
       ),
@@ -13,7 +13,14 @@ html {
       density: 0,
     )
   );
-  color-scheme: light dark;
+
+  &.theme-light {
+    color-scheme: light;
+  }
+
+  &.theme-dark {
+    color-scheme: dark;
+  }
 }
 
 * {
@@ -36,8 +43,8 @@ body {
 /* Custom user marker, created imperatively by maplibre-gl outside Angular's
    view encapsulation, so it must be styled globally. */
 .user-marker {
-  width: 36px;
-  height: 36px;
+  width: 2.25rem;
+  height: 2.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -45,9 +52,9 @@ body {
   &__arrow {
     width: 0;
     height: 0;
-    border-left: 9px solid transparent;
-    border-right: 9px solid transparent;
-    border-bottom: 20px solid #1a73e8;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+    border-left: 0.5625rem solid transparent;
+    border-right: 0.5625rem solid transparent;
+    border-bottom: 1.25rem solid #1a73e8;
+    filter: drop-shadow(0 0.0625rem 0.125rem rgba(0, 0, 0, 0.4));
   }
 }
