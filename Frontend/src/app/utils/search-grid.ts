@@ -1,5 +1,5 @@
 import { LngLat, LngLatLike } from 'maplibre-gl';
-import { offsetMeters } from '../geo.util';
+import { offsetMeters } from '@app/utils';
 
 export const GRID_RADIUS_M = 200;
 export const GRID_CELL_M = 5;

@@ -1,5 +1,9 @@
 <div class="locator">
-  <app-map [target]="target()" />
+  <app-map
+    [target]="target()"
+    [sharedCheckedCells]="sharedCheckedCells"
+    (checkedCellsChange)="onCheckedCellsChange($event)"
+  />
 
   <mat-card class="locator__panel">
     @if (routeInfo(); as info) {
@@ -44,11 +48,17 @@
         <button mat-icon-button type="button" (click)="clear()">
           <mat-icon>clear</mat-icon>
         </button>
+        <button mat-icon-button type="button" [disabled]="!target()" (click)="share()">
+          <mat-icon>share</mat-icon>
+        </button>
       </div>
     </form>
 
     @if (pasteError()) {
       <p class="locator__hint locator__hint--error">{{ pasteError() }}</p>
+    }
+    @if (shareStatus()) {
+      <p class="locator__hint">{{ shareStatus() }}</p>
     }
 
     @if (geolocation.needsCompassPermission()) {

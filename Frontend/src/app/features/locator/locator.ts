@@ -5,11 +5,23 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { GeolocationService, StorageService } from '@app/core';
+import { GeolocationService, QueryParamsService, StorageService } from '@app/core';
+import {
+  bearingDegrees,
+  CHECKED_CELLS_PARAM,
+  compassDirection,
+  decodeCheckedCells,
+  distanceMeters,
+  encodeCheckedCells,
+  formatDistance,
+  gridStorageKey,
+  parseLatLng,
+  parseSharedLink,
+  TARGET_PARAM
+} from '@app/utils';
 import { LngLatLike } from 'maplibre-gl';
-import { bearingDegrees, compassDirection, distanceMeters, formatDistance, parseLatLng } from './geo.util';
+
 import { MapComponent } from './map/map';
-import { gridStorageKey } from './map/search-grid';
 
 const COORDS_STORAGE_KEY = 'coords';
 
@@ -30,23 +42,32 @@ const COORDS_STORAGE_KEY = 'coords';
 export class LocatorComponent {
   readonly #fb = inject(FormBuilder);
   readonly #storage = inject(StorageService);
+  readonly #queryParams = inject(QueryParamsService);
   protected readonly geolocation = inject(GeolocationService);
 
+  readonly #urlCoords = parseLatLng(this.#queryParams.getParam(TARGET_PARAM) ?? '');
   readonly #storedCoords = this.#storage.getItem<{ lat: number; lng: number }>(COORDS_STORAGE_KEY);
+  readonly #initialCoords = this.#urlCoords ?? this.#storedCoords;
+
+  /** Checked cells from a shared link — only meaningful together with #urlCoords. */
+  protected readonly sharedCheckedCells = this.#urlCoords
+    ? decodeCheckedCells(this.#queryParams.getParam(CHECKED_CELLS_PARAM) ?? '')
+    : null;
 
   protected readonly form = this.#fb.nonNullable.group({
     lat: [
-      this.#storedCoords?.lat ?? (null as number | null),
+      this.#initialCoords?.lat ?? (null as number | null),
       [Validators.required, Validators.min(-90), Validators.max(90)],
     ],
     lng: [
-      this.#storedCoords?.lng ?? (null as number | null),
+      this.#initialCoords?.lng ?? (null as number | null),
       [Validators.required, Validators.min(-180), Validators.max(180)],
     ],
   });
 
-  protected readonly target = signal<LngLatLike | null>(this.#storedCoords);
+  protected readonly target = signal<LngLatLike | null>(this.#initialCoords);
   protected readonly pasteError = signal<string | null>(null);
+  protected readonly shareStatus = signal<string | null>(null);
 
   protected readonly routeInfo = computed(() => {
     const position = this.geolocation.position();
@@ -67,6 +88,13 @@ export class LocatorComponent {
     };
   });
 
+  constructor() {
+    // A link shared with someone else takes priority over what's already in
+    // their own localStorage — adopt it as the new local baseline.
+    if (this.#urlCoords)
+      this.#storage.setItem(COORDS_STORAGE_KEY, this.#urlCoords);
+  }
+
   protected async pasteCoordinates(): Promise<void> {
     this.pasteError.set(null);
 
@@ -79,13 +107,45 @@ export class LocatorComponent {
       return;
     }
 
+    // A pasted share link carries its own checked-cells state alongside the
+    // target — reloading onto it reuses the exact same URL-hydration path a
+    // freshly opened link goes through, instead of juggling that state here.
+    const sharedLink = parseSharedLink(text);
+    if (sharedLink) {
+      location.href = sharedLink;
+      return;
+    }
+
     const parsed = parseLatLng(text);
     if (!parsed) {
-      this.pasteError.set('Clipboard doesn\'t contain "lat, lng" coordinates');
+      this.pasteError.set('Clipboard doesn\'t contain "lat, lng" coordinates or a shared link');
       return;
     }
 
     this.form.patchValue(parsed);
+  }
+
+  protected async share(): Promise<void> {
+    this.shareStatus.set(null);
+    const url = location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ url, title: 'I lost my drone' });
+      }
+      catch {
+        /* user dismissed the share sheet — not an error */
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      this.shareStatus.set('Link copied to clipboard');
+    }
+    catch {
+      this.shareStatus.set('Could not copy the link');
+    }
   }
 
   protected submit(): void {
@@ -100,6 +160,13 @@ export class LocatorComponent {
 
     this.#storage.setItem(COORDS_STORAGE_KEY, { lat, lng });
     this.target.set({ lat, lng });
+
+    // New target, so any `g` in the URL described checked cells for the old one.
+    this.#queryParams.setParams({ [TARGET_PARAM]: `${lat},${lng}`, [CHECKED_CELLS_PARAM]: null });
+  }
+
+  protected onCheckedCellsChange(ids: number[]): void {
+    this.#queryParams.setParams({ [CHECKED_CELLS_PARAM]: ids.length ? encodeCheckedCells(ids) : null });
   }
 
   protected clear(): void {
@@ -110,5 +177,7 @@ export class LocatorComponent {
     this.#storage.removeItem(COORDS_STORAGE_KEY);
     this.form.reset({ lat: null, lng: null });
     this.target.set(null);
+
+    this.#queryParams.setParams({ [TARGET_PARAM]: null, [CHECKED_CELLS_PARAM]: null });
   }
 }

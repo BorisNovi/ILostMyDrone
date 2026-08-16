@@ -6,9 +6,11 @@ import {
   effect,
   inject,
   input,
+  output,
   viewChild,
 } from '@angular/core';
 import { GeolocationService, StorageService, ThemeService, UserPosition } from '@app/core';
+import { buildSearchGrid, gridStorageKey } from '@app/utils';
 import { environment } from '@environments/environment';
 import {
   GeoJSONSource,
@@ -21,7 +23,7 @@ import {
   NavigationControl,
   setWorkerUrl,
 } from 'maplibre-gl';
-import { buildSearchGrid, gridStorageKey } from './search-grid';
+
 
 const ROUTE_SOURCE_ID = 'route';
 const GRID_SOURCE_ID = 'search-grid';
@@ -53,6 +55,9 @@ export class MapComponent implements OnDestroy {
   readonly #storage = inject(StorageService);
 
   readonly target = input<LngLatLike | null>(null);
+  /** Checked cells to seed the grid with once, from a shared link — see LocatorComponent. */
+  readonly sharedCheckedCells = input<number[] | null>(null);
+  readonly checkedCellsChange = output<number[]>();
 
   protected readonly mapContainer = viewChild.required<ElementRef<HTMLDivElement>>('mapContainer');
 
@@ -67,6 +72,7 @@ export class MapComponent implements OnDestroy {
   #grid: ReturnType<typeof buildSearchGrid> | null = null;
   #gridStorageKey: string | null = null;
   #checkedCells = new Set<number>();
+  #sharedCellsConsumed = false;
 
   constructor() {
     afterNextRender(() => this.#initMap());
@@ -175,7 +181,19 @@ export class MapComponent implements OnDestroy {
     }
 
     this.#gridStorageKey = gridStorageKey(target);
-    this.#checkedCells = new Set(this.#storage.getItem<number[]>(this.#gridStorageKey) ?? []);
+
+    // A shared link's checked cells only apply once, to the target that was
+    // shared — not to whatever target the user later searches for locally.
+    const shared = this.#sharedCellsConsumed ? null : this.sharedCheckedCells();
+    this.#sharedCellsConsumed = true;
+
+    if (shared) {
+      this.#checkedCells = new Set(shared);
+      this.#storage.setItem(this.#gridStorageKey, shared);
+    }
+    else
+      this.#checkedCells = new Set(this.#storage.getItem<number[]>(this.#gridStorageKey) ?? []);
+
     this.#grid = buildSearchGrid(target);
     this.#applyGrid();
   }
@@ -252,7 +270,10 @@ export class MapComponent implements OnDestroy {
       this.#checkedCells.add(id);
 
     this.#map.setFeatureState({ source: GRID_SOURCE_ID, id }, { checked: this.#checkedCells.has(id) });
-    this.#storage.setItem(this.#gridStorageKey, [...this.#checkedCells]);
+
+    const checked = [...this.#checkedCells];
+    this.#storage.setItem(this.#gridStorageKey, checked);
+    this.checkedCellsChange.emit(checked);
   }
 
   #updateUserMarker(position: UserPosition | null): void {
