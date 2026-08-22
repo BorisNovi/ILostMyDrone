@@ -54,3 +54,6 @@ Thumbs.db
 
 # Local-only docker compose overrides — never deployed to the VPS
 /docker-compose.override.yml
+
+# Personal working notes, not part of the shipped project
+/plan.md
