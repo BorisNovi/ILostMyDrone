@@ -22,6 +22,27 @@ namespace LostDroneApi.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("LostDroneApi.Models.CheckedCell", b =>
+                {
+                    b.Property<string>("SessionId")
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("CellX")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CellY")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)");
+
+                    b.HasKey("SessionId", "CellX", "CellY");
+
+                    b.ToTable("CheckedCells");
+                });
+
             modelBuilder.Entity("LostDroneApi.Models.Session", b =>
                 {
                     b.Property<string>("Id")
@@ -45,6 +66,15 @@ namespace LostDroneApi.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Sessions");
+                });
+
+            modelBuilder.Entity("LostDroneApi.Models.CheckedCell", b =>
+                {
+                    b.HasOne("LostDroneApi.Models.Session", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

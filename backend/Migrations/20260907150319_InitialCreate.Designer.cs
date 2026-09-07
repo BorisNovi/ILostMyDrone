@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LostDroneApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260823221731_InitialCreate")]
+    [Migration("20260907150319_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -24,6 +24,27 @@ namespace LostDroneApi.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("LostDroneApi.Models.CheckedCell", b =>
+                {
+                    b.Property<string>("SessionId")
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("CellX")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CellY")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)");
+
+                    b.HasKey("SessionId", "CellX", "CellY");
+
+                    b.ToTable("CheckedCells");
+                });
 
             modelBuilder.Entity("LostDroneApi.Models.Session", b =>
                 {
@@ -48,6 +69,15 @@ namespace LostDroneApi.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Sessions");
+                });
+
+            modelBuilder.Entity("LostDroneApi.Models.CheckedCell", b =>
+                {
+                    b.HasOne("LostDroneApi.Models.Session", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

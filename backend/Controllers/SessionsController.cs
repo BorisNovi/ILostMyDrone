@@ -44,9 +44,7 @@ public class SessionsController(AppDbContext db) : ControllerBase
         var session = await db.Sessions.FindAsync(id);
 
         if (session is null)
-        {
             return NotFound();
-        }
 
         return new SessionResponse(session.Id, session.TargetLatitude, session.TargetLongitude);
     }
@@ -58,14 +56,10 @@ public class SessionsController(AppDbContext db) : ControllerBase
         var session = await db.Sessions.FindAsync(id);
 
         if (session is null)
-        {
             return NotFound();
-        }
 
         if (creatorToken is null || session.CreatorToken != creatorToken)
-        {
             return StatusCode(StatusCodes.Status403Forbidden);
-        }
 
         db.Sessions.Remove(session);
         await db.SaveChangesAsync();
