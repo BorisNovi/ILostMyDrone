@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LostDroneApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260907150319_InitialCreate")]
+    [Migration("20260907221448_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -55,7 +55,7 @@ namespace LostDroneApi.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CreatorToken")
+                    b.Property<string>("MasterToken")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");

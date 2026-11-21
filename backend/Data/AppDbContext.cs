@@ -14,7 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             entity.HasKey(s => s.Id);
             entity.Property(s => s.Id).HasMaxLength(32);
-            entity.Property(s => s.CreatorToken).HasMaxLength(64);
+            entity.Property(s => s.MasterToken).HasMaxLength(64);
         });
 
         modelBuilder.Entity<CheckedCell>(entity =>

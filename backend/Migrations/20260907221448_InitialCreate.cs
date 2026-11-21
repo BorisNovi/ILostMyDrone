@@ -16,7 +16,7 @@ namespace LostDroneApi.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
-                    CreatorToken = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    MasterToken = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     TargetLatitude = table.Column<double>(type: "double precision", nullable: false),
                     TargetLongitude = table.Column<double>(type: "double precision", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)

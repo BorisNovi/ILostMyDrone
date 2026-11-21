@@ -7,9 +7,7 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-    });
+    .AddJsonOptions(options => {});
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -18,6 +16,7 @@ builder.Services.AddCorsPolicy(builder.Configuration);
 builder.Services.AddRateLimiting();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<SessionSocketRegistry>();
 
 var app = builder.Build();
 
@@ -31,6 +30,7 @@ app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseCors();
 app.UseRateLimiter();
+app.UseWebSockets();
 
 if (app.Environment.IsDevelopment())
 {
@@ -39,6 +39,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+app.MapSessionWebSocket();
 app.MapGet("/api/version", () => Environment.GetEnvironmentVariable("APP_VERSION") ?? "dev");
 
 app.Run();

@@ -13,8 +13,8 @@ public class SessionsController(AppDbContext db) : ControllerBase
 {
     private const string SessionIdAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
     private const int SessionIdLength = 10;
-    private const string CreatorTokenAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    private const int CreatorTokenLength = 32;
+    private const string MasterTokenAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private const int MasterTokenLength = 32;
 
     [HttpPost]
     [EnableRateLimiting("create")]
@@ -23,7 +23,7 @@ public class SessionsController(AppDbContext db) : ControllerBase
         var session = new Session
         {
             Id = RandomNumberGenerator.GetString(SessionIdAlphabet, SessionIdLength),
-            CreatorToken = RandomNumberGenerator.GetString(CreatorTokenAlphabet, CreatorTokenLength),
+            MasterToken = RandomNumberGenerator.GetString(MasterTokenAlphabet, MasterTokenLength),
             TargetLatitude = request.TargetLatitude,
             TargetLongitude = request.TargetLongitude,
         };
@@ -34,7 +34,7 @@ public class SessionsController(AppDbContext db) : ControllerBase
         return CreatedAtAction(
             nameof(Get),
             new { id = session.Id },
-            new CreateSessionResponse(session.Id, session.CreatorToken));
+            new CreateSessionResponse(session.Id, session.MasterToken));
     }
 
     [HttpGet("{id}")]
@@ -51,14 +51,14 @@ public class SessionsController(AppDbContext db) : ControllerBase
 
     [HttpDelete("{id}")]
     [EnableRateLimiting("read")]
-    public async Task<IActionResult> Delete(string id, [FromHeader(Name = "X-Creator-Token")] string? creatorToken)
+    public async Task<IActionResult> Delete(string id, [FromHeader(Name = "X-Master-Token")] string? masterToken)
     {
         var session = await db.Sessions.FindAsync(id);
 
         if (session is null)
             return NotFound();
 
-        if (creatorToken is null || session.CreatorToken != creatorToken)
+        if (masterToken is null || session.MasterToken != masterToken)
             return StatusCode(StatusCodes.Status403Forbidden);
 
         db.Sessions.Remove(session);
