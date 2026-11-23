@@ -1,11 +1,23 @@
 using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json;
 using LostDroneApi.Data;
+using LostDroneApi.Dtos;
 using LostDroneApi.Infrastructure;
+using LostDroneApi.Models;
 
 namespace LostDroneApi.Extensions;
 
 public static class WebSocketEndpointExtensions
 {
+    /// <summary>
+    /// Maps the live-session WebSocket endpoint (GET /api/sessions/{id}/ws). Handles the upgrade
+    /// handshake, assigns the connecting socket a color (master if ?masterToken= matches the
+    /// session, otherwise next free slave color), sends it that color, broadcasts
+    /// participantJoined/Left to the rest of the session, and processes incoming tapCell
+    /// messages — applying the tap rule (own cell unmarks, other/empty cell gets your color),
+    /// persisting to CheckedCells, and broadcasting the resulting cellChanged to everyone.
+    /// </summary>
     public static WebApplication MapSessionWebSocket(this WebApplication app)
     {
         app.Map("/api/sessions/{id}/ws", async (
@@ -43,6 +55,7 @@ public static class WebSocketEndpointExtensions
 
             var color = join.Color;
 
+            await SessionSocketRegistry.SendAsync(socket, new { type = "joined", color });
             await registry.BroadcastAsync(id, new { type = "participantJoined", color }, exclude: socket);
 
             var buffer = new byte[4096];
@@ -59,7 +72,49 @@ public static class WebSocketEndpointExtensions
                         break;
                     }
 
-                    // Cell-tap message handling lands here in the next step.
+                    if (result.MessageType != WebSocketMessageType.Text)
+                        continue;
+
+                    var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                    var incoming = JsonSerializer.Deserialize<TapCellMessage>(json, SessionSocketRegistry.JsonOptions);
+
+                    if (incoming is null || incoming.Type != "tapCell")
+                        continue;
+
+                    var cell = await db.CheckedCells.FindAsync(id, incoming.CellX, incoming.CellY);
+                    string? newColor;
+
+                    if (cell is not null && cell.Color == color)
+                    {
+                        db.CheckedCells.Remove(cell);
+                        newColor = null;
+                    }
+                    else if (cell is not null)
+                    {
+                        cell.Color = color;
+                        newColor = color;
+                    }
+                    else
+                    {
+                        db.CheckedCells.Add(new CheckedCell
+                        {
+                            SessionId = id,
+                            CellX = incoming.CellX,
+                            CellY = incoming.CellY,
+                            Color = color,
+                        });
+                        newColor = color;
+                    }
+
+                    await db.SaveChangesAsync();
+
+                    await registry.BroadcastAsync(id, new
+                    {
+                        type = "cellChanged",
+                        cellX = incoming.CellX,
+                        cellY = incoming.CellY,
+                        color = newColor,
+                    });
                 }
             }
             catch (WebSocketException)

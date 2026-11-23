@@ -5,6 +5,10 @@ namespace LostDroneApi.Infrastructure;
 
 public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
+    /// <summary>
+    /// Catches any otherwise-unhandled exception, logs it, and responds with a generic
+    /// 500 ProblemDetails body instead of leaking exception details to the client.
+    /// </summary>
     public async ValueTask<bool> TryHandleAsync(
         HttpContext context,
         Exception exception,

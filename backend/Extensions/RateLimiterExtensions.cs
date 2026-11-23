@@ -5,6 +5,10 @@ namespace LostDroneApi.Extensions;
 
 public static class RateLimiterExtensions
 {
+    /// <summary>
+    /// Registers two per-IP sliding-window rate limit policies used on SessionsController:
+    /// "create" (10 requests/min, for POST) and "read" (60 requests/min, for GET/DELETE).
+    /// </summary>
     public static IServiceCollection AddRateLimiting(this IServiceCollection services)
     {
         services.AddRateLimiter(options =>

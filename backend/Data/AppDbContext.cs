@@ -8,6 +8,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<CheckedCell> CheckedCells => Set<CheckedCell>();
 
+    /// <summary>
+    /// Configures Session (PK: Id) and CheckedCell (composite PK: SessionId+CellX+CellY,
+    /// FK to Session with ON DELETE CASCADE so deleting a session wipes its checked cells).
+    /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Session>(entity =>
